@@ -5,6 +5,9 @@
     <event name="Framework_Database::indexer">
         <observer name="Weline_Indexer::indexer" instance="Weline\Indexer\Observer\Reindex" disabled="false" shared="true"/>
     </event>
+    <event name="Framework_Database::indexer_listing">
+        <observer name="Weline_Indexer::indexer_listing" instance="Weline\Indexer\Observer\ReindexListing" disabled="false" shared="true"/>
+    </event>
     <event name="Framework_Module::module_upgrade">
         <observer name="Weline_Indexer::module_upgrade" instance="Weline\Indexer\Observer\ReindexCollector" disabled="false" shared="true"/>
     </event>

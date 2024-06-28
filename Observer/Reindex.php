@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Weline\Indexer\Observer;
 
+use Weline\Framework\Database\AbstractModel;
 use Weline\Framework\Event\Event;
 use Weline\Framework\Manager\ObjectManager;
 use Weline\Framework\Output\Cli\Printing;
@@ -35,48 +36,62 @@ class Reindex implements \Weline\Framework\Event\ObserverInterface
      */
     public function execute(Event $event)
     {
-        $args = $event->getData('args');
+        $data = $event->getData('data');
+        $args = $data->getData('args');
+        $break = $data->getData('break');
         # 检测是否自定义索引重建
         array_shift($args);
         $args_indexers = $args;
         if ($args_indexers) {
             # 查找自定义索引是否在数据库中
             foreach ($args_indexers as $args_indexer) {
-                $indexers = $this->indexer->where('name', $args_indexer)->select()->fetch();
+                $this->printing->note(__("开始重建索引：%1",$args_indexer));
+                $indexers = $this->indexer->where('name', $args_indexer)->select()->fetch()->getItems();
                 if (!$indexers) {
-                    $this->printing->error('索引器 ' . $args_indexer . ' 找不到');
+                    $this->printing->error(__('索引器 %1 找不到',$args_indexer));
                     continue;
                 }
                 foreach ($indexers as $indexer) {
                     if (class_exists($indexer->getModel())) {
+                        /**@var AbstractModel $model */
                         $model = ObjectManager::getInstance($indexer->getModel());
-                        $this->printing->note("开始重建索引：{$indexer['name']}");
+                        $this->printing->note(__("开始重建索引：%1",$indexer['name']));
                         $model->reindex($model->getTable());
-                        $this->printing->success("索引重建完成：{$indexer['name']}");
+                        $this->printing->success(__("索引重建完成：%1",$indexer['name']));
                     } else {
-                        $this->printing->error('索引模型不存在');
+                        $this->printing->error(__('索引模型不存在'));
                         return;
                     }
                 }
             }
         } else {
             # 检索Model模型
-            $indexers = $this->indexer->select()->fetch();
-            /**@var Indexer $indexer */
+            $indexers = $this->indexer->select()->fetch()->getItems();
+            $indexersItems = [];
             foreach ($indexers as $indexer) {
-                $this->printing->note("开始重建索引：{$indexer['name']}");
-                if (class_exists($indexer->getModel())) {
-                    $model = ObjectManager::getInstance($indexer->getModel());
-                    $model->reindex($model->getTable());
-                    $this->printing->success("索引重建完成：{$indexer['name']}");
-                } else {
-                    $this->printing->error('索引模型不存在');
-                    return;
+                $indexersItems[$indexer->getName()][] =$indexer;
+            }
+            /**@var Indexer $indexer */
+            foreach ($indexersItems as $indexer=>$indexerItems) {
+                $this->printing->note(__("开始重建索引：%1",$indexer));
+                foreach ($indexerItems as $indexerItem) {
+                    if (class_exists($indexerItem->getModel())) {
+                        /**@var AbstractModel $model */
+                        $model = ObjectManager::getInstance($indexerItem->getModel());
+                        $model->reindex($model->getTable());
+                        $this->printing->warning(__("重建索引：%1",$model->getTable()));
+                    } else {
+                        $this->printing->error(__('索引模型不存在'));
+                        return;
+                    }
                 }
+                $this->printing->success(__("索引重建完成：%1",$indexer));
             }
         }
 
         # 所有索引重建完成
-        $this->printing->note('所有索引重建完成');
+        $this->printing->note(__('所有索引重建完成'));
+        $break = true;
+        $data->setData('break', $break);
     }
 }
