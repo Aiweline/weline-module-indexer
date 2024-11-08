@@ -54,7 +54,7 @@ class ReindexCollector implements \Weline\Framework\Event\ObserverInterface
                         $hasIndexer = $this->indexer
                             ->reset()
                             ->clearData()
-                            ->where([['name', $indexer], ['model', $model::class]])
+                            ->where([[$this->indexer::fields_NAME, $indexer], [$this->indexer::fields_MODEL, $model::class]])
                             ->find()
                             ->fetch();
                         if (!$hasIndexer->getId()) {
