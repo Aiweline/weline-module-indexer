@@ -54,15 +54,15 @@ class ReindexCollector implements \Weline\Framework\Event\ObserverInterface
                         $hasIndexer = $this->indexer
                             ->reset()
                             ->clearData()
-                            ->where([['name', $indexer], ['model', $model::class]])
+                            ->where([[$this->indexer::fields_NAME, $indexer], [$this->indexer::fields_MODEL, $model::class]])
                             ->find()
                             ->fetch();
                         if (!$hasIndexer->getId()) {
                             # 如果没有indexer，则创建
                             $this->indexer->setName($indexer);
-                            $this->indexer->setModule($module->getName());
-                            $this->indexer->setModel($model::class);
-                            $this->indexer->setTable($model->getTable());
+                            $this->indexer->setModuleName($module->getName());
+                            $this->indexer->setModuleModel($model::class);
+                            $this->indexer->setModuleTable($model->getTable());
                             $this->indexer->save();
                         }
                     }
